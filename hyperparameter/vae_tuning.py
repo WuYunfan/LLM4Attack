@@ -16,7 +16,7 @@ def objective(trial):
     dropout = trial.suggest_categorical('dropout', [0.2, 0.4, 0.6, 0.8, 1.])
     set_seed(2023)
     device = torch.device('cuda')
-    dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Gowalla/time',
+    dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Amazon/time',
                       'device': device}
     model_config = {'name': 'MultiVAE', 'layer_sizes': [64, 32],
                     'dropout': dropout}

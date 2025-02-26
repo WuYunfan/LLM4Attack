@@ -15,7 +15,7 @@ def objective(trial):
     l2_reg = trial.suggest_categorical('l2_reg', [1.e-4, 1.e-3, 1.e-2, 1.e-1])
     set_seed(2023)
     device = torch.device('cuda')
-    dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Gowalla/time',
+    dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Amazon/time',
                       'device': device}
     model_config = {'name': 'NeuMF', 'embedding_size': 64, 'layer_sizes': [64, 64, 64]}
     trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': lr, 'l2_reg': l2_reg,

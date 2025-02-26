@@ -18,7 +18,7 @@ def objective(trial):
     adv_reg = trial.suggest_categorical('adv_reg', [1.e-2, 1.e-1, 1., 1.e1])
     set_seed(2023)
     device = torch.device('cuda')
-    dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Gowalla/time',
+    dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Amazon/time',
                       'device': device}
     model_config = {'name': 'MF', 'embedding_size': 64}
     trainer_config = {'name': 'APRTrainer', 'optimizer': 'Adam', 'lr': lr, 'l2_reg': l2_reg,
