@@ -39,7 +39,7 @@ def encode_feats_2_vectors(path):
                 print(response)
                 '''
                 feat = model(**model_inputs, output_hidden_states=True)
-                feat = feat.hidden_states[-1][0, -1, :]
+                feat = feat.hidden_states[-1][0, -1, :].cpu()
                 feats_tensor.append(feat)
             feat = f.readline().strip()
     feats_tensor = torch.stack(feats_tensor, dim=0)
