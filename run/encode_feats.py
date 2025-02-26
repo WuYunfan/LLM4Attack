@@ -8,7 +8,6 @@ import torch
 
 
 def encode_feats_2_vectors(path):
-    token = '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'
     model_id = 'Qwen/Qwen2.5-7B-Instruct'
     tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
     model = transformers.AutoModelForCausalLM.from_pretrained(model_id, torch_dtype='auto', device_map='auto')
