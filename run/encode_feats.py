@@ -44,9 +44,6 @@ def encode_feats_2_vectors(path):
             feat = f.readline().strip()
     feats_tensor = torch.stack(feats_tensor, dim=0)
     torch.save(feats_tensor, os.path.join(path, 'feats.pt'))
-    print(feats_tensor[0, :], feats_tensor.dtype)
-    feats_tensor = torch.load(os.path.join(path, 'feats.pt'))
-    print(feats_tensor[0, :], feats_tensor.dtype)
 
 
 def main():
