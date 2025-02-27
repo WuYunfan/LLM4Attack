@@ -11,8 +11,8 @@ from optuna.study import MaxTrialsCallback
 
 
 def objective(trial):
-    lr = None
-    l2_reg = None
+    lr = 0.001
+    l2_reg = 0.001
 
     eps = trial.suggest_categorical('eps', [1.e-2, 1.e-1, 1., 1.e1])
     adv_reg = trial.suggest_categorical('adv_reg', [1.e-2, 1.e-1, 1., 1.e1])

@@ -11,7 +11,8 @@ import types
 from functools import partial
 from torch.utils.data import Dataset
 from dataset import get_negative_items
-
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+import transformers
 
 def set_seed(seed=0):
     random.seed(seed)
@@ -156,3 +157,67 @@ def goal_oriented_loss(target_scores, top_scores, expected_hr):
     bottom_loss = loss.reshape(-1).topk(n_target_hits).values
     bottom_loss = -bottom_loss
     return bottom_loss.mean()
+
+
+class LLMGenerator:
+    def __init__(self, model_id):
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+        self.model = transformers.AutoModelForCausalLM.from_pretrained(model_id, torch_dtype='auto', device_map='auto')
+
+    def generate(self, history):
+        messages = [
+            {'role': 'system',
+             'content': "You are simulating a user on an online book-selling platform. "
+                        "Your task is to predict the next book this user is likely to purchase based on their chronological purchasing history. "
+                        "The user's history is provided as a sequence of book attributes in the following format:\n"
+                        "book_1's attributes \\n book_2's attributes \\n ... \\n book_n's attributes\n"
+                        "Requirements:\n"
+                        "- Ensure the predicted book is a **real, existing book** based on your knowledge.\n"
+                        "- Maintain **logical consistency** with the user's past purchases.\n"
+                        "- Output only the predicted book's attributes in the same format as the provided history, without any explanations or additional text.\n"
+                        f"Here is the user's purchasing history:\n{history}\n"}]
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
+        with torch.no_grad():
+            generated_ids = self.model.generate(**model_inputs, max_length=np.inf, do_sample=False)
+            generated_ids = [
+                output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+            ]
+            response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        return response
+
+
+class LLMEncoder:
+    def __init__(self, model_id):
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
+        self.model = transformers.AutoModelForCausalLM.from_pretrained(model_id, torch_dtype='auto', device_map='auto')
+
+    def encode(self, feat):
+        messages = [
+            {'role': 'system',
+             'content': "As an intelligent book recommender system, your task is to generate a compelling, well-structured, and informative book recommendation summary. "
+                        "You should not only present the key information provided but also supplement it with relevant insights based on your own knowledge. "
+                        "Ensure that the summary is engaging, concise, and appeals to the target audience. "
+                        f"Below is the book's key information: \n{feat}\n"}]
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
+        with torch.no_grad():
+            '''
+            generated_ids = self.model.generate(**model_inputs, max_length=np.inf, do_sample=False)
+            generated_ids = [
+                output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+            ]
+            response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            print(text, '\n\n')
+            print(response)
+            '''
+            feat = self.model(**model_inputs, output_hidden_states=True)
+        return feat.hidden_states[-1][0, -1, :].cpu()

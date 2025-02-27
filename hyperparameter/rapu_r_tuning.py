@@ -1,6 +1,6 @@
 from attacker import get_attacker
 from utils import set_seed, init_run, get_target_items
-from config import get_gowalla_config as get_config
+from config import get_amazon_config as get_config
 import torch
 from dataset import get_dataset
 import optuna
@@ -22,8 +22,8 @@ def objective(trial):
     surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': s_lr, 'l2_reg': s_l2,
                                 'n_epochs': 5, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
-    attacker_config = {'name': 'RAPURAttacker', 'n_fakes': 131, 'topk': 50,
-                       'n_inters': 41,  'step': 5, 'top_rate': 0.1,
+    attacker_config = {'name': 'RAPURAttacker', 'n_fakes': 217, 'topk': 50,
+                       'n_inters': 18,  'step': 5, 'top_rate': 0.1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
 

@@ -1,6 +1,6 @@
 from attacker import get_attacker
 from utils import set_seed, init_run, get_target_items
-from config import get_gowalla_config as get_config
+from config import get_amazon_config as get_config
 import torch
 from dataset import get_dataset
 import optuna
@@ -25,7 +25,7 @@ def objective(trial):
                                 'n_epochs': 45, 'batch_size': 2048, 'weight': 20.,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'RevAdvAttacker', 'lr': lr, 'momentum': 1. - m_momentum,
-                       'n_fakes': 131, 'unroll_steps': 5, 'n_inters': 41, 'topk': 50, 'adv_epochs': 30,
+                       'n_fakes': 217, 'unroll_steps': 5, 'n_inters': 18, 'topk': 50, 'adv_epochs': 30,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
 
