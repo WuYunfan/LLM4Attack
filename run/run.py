@@ -26,11 +26,16 @@ def main():
         print('Target items of {:d}th run: {:s}'.format(i, str(target_items)))
         attacker_config['target_items'] = target_items
 
+        if attacker_config['name'] != 'BandwagonAttacker':
+            dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'gen')
+            dataset = get_dataset(dataset_config)
         attacker = get_attacker(attacker_config, dataset)
         if os.path.exists(log_path + '-' + str(target_items)):
             shutil.rmtree(log_path + '-' + str(target_items))
         writer = SummaryWriter(log_path + '-' + str(target_items))
         attacker.generate_fake_users(writer=writer)
+        dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'time')
+        attacker.dataset = get_dataset(dataset_config)
         configs = get_config(device)
         for idx, (_, model_config, trainer_config) in enumerate(configs):
             attacker.eval(model_config, trainer_config, writer=writer)

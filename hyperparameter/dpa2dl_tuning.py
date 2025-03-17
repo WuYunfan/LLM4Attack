@@ -10,6 +10,7 @@ from optuna.trial import TrialState
 from optuna.study import MaxTrialsCallback
 import shutil
 import numpy as np
+import os
 
 
 def objective(trial):
@@ -31,11 +32,16 @@ def objective(trial):
                        'surrogate_trainer_config': surrogate_trainer_config}
 
     dataset = get_dataset(dataset_config)
-    target_items = get_target_items(dataset, bottom_ratio=0.01)
+    target_items = get_target_items(dataset)
     attacker_config['target_items'] = target_items
+
+    dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'gen')
+    dataset = get_dataset(dataset_config)
     attacker = get_attacker(attacker_config, dataset)
     attacker.generate_fake_users(verbose=False)
-    recall = attacker.eval(model_config, trainer_config)
+    dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'time')
+    attacker.dataset = get_dataset(dataset_config)
+    recall = attacker.eval(model_config, trainer_config, dataset_config)
     shutil.rmtree('checkpoints')
     return recall
 

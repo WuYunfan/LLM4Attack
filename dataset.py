@@ -126,7 +126,7 @@ class BasicDataset(Dataset):
             n_train_items = int(n_inter_items * self.split_ratio[0])
             self.train_data.append({i_t[0] for i_t in user_inter_lists[user][:n_train_items]})
             self.val_data.append({i_t[0] for i_t in user_inter_lists[user][n_train_items:]})
-            popularity.append(n_train_items)
+            popularity.append(n_inter_items)
         average_inters = np.mean(average_inters)
         print('Users {:d}, Items {:d}, Average number of interactions {:.3f}, Total interactions {:.1f}'
               .format(self.n_users, self.n_items, average_inters, average_inters * self.n_users))
