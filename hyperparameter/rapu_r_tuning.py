@@ -38,7 +38,7 @@ def objective(trial):
     attacker.generate_fake_users(verbose=False)
     dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'time')
     attacker.dataset = get_dataset(dataset_config)
-    recall = attacker.eval(model_config, trainer_config, dataset_config)
+    recall = attacker.eval(model_config, trainer_config)
     shutil.rmtree('checkpoints')
     return recall
 
