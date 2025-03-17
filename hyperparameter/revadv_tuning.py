@@ -30,17 +30,18 @@ def objective(trial):
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
 
-    dataset = get_dataset(dataset_config)
-    target_items = get_target_items(dataset)
+    real_dataset = get_dataset(dataset_config)
+    target_items = get_target_items(real_dataset)
     attacker_config['target_items'] = target_items
 
     dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'gen')
-    dataset = get_dataset(dataset_config)
-    attacker = get_attacker(attacker_config, dataset)
+    generated_dataset = get_dataset(dataset_config)
+    attacker = get_attacker(attacker_config, generated_dataset)
     attacker.generate_fake_users(verbose=False)
-    dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'time')
-    attacker.dataset = get_dataset(dataset_config)
-    recall = attacker.eval(model_config, trainer_config)
+
+    new_attacker = get_attacker(attacker_config, real_dataset)
+    new_attacker.fake_user_inters = attacker.fake_user_inters
+    recall = new_attacker.eval(model_config, trainer_config)
     shutil.rmtree('checkpoints')
     return recall
 

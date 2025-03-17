@@ -3,7 +3,7 @@ from dataset import get_dataset
 
 def process_dataset(name):
     dataset_config = {'name': name + 'Dataset', 'path': '/data/wuyunfan/' + name,
-                      'device': 'cpu', 'split_ratio': [0.8, 0.2], 'min_inter': 10}
+                      'device': 'cpu', 'train_ratio': 0.8, 'min_inter': 10}
     dataset = get_dataset(dataset_config)
     dataset.output_dataset('data/' + name + '/time')
 

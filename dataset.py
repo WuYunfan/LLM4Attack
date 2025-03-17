@@ -69,7 +69,7 @@ class BasicDataset(Dataset):
         self.config = dataset_config
         self.name = dataset_config['name']
         self.min_interactions = dataset_config.get('min_inter')
-        self.split_ratio = dataset_config.get('split_ratio')
+        self.train_ratio = dataset_config.get('train_ratio')
         self.device = dataset_config['device']
         self.negative_sample_ratio = 1
         self.shuffle = dataset_config.get('shuffle', False)
@@ -123,7 +123,7 @@ class BasicDataset(Dataset):
 
             n_inter_items = len(user_inter_lists[user])
             average_inters.append(n_inter_items)
-            n_train_items = int(n_inter_items * self.split_ratio[0])
+            n_train_items = int(n_inter_items * self.train_ratio)
             self.train_data.append({i_t[0] for i_t in user_inter_lists[user][:n_train_items]})
             self.val_data.append({i_t[0] for i_t in user_inter_lists[user][n_train_items:]})
             popularity.append(n_inter_items)

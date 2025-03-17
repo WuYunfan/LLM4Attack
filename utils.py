@@ -169,7 +169,7 @@ class LLMGenerator:
             {'role': 'system',
              'content': "You are simulating a user on an online book-selling platform. "
                         "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. "
-                        f"The user's purchase history in sequential order is as follows: \n{history}\n"
+                        f"The user's purchase history in sequential order is as follows: {history}\n"
                         f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n"
                         f"Please directly output only the integer index of the most likely next purchase, within the range [0, {candidate_size-1}]. "
                         "**Do not provide any explanations or additional text**. "
@@ -216,5 +216,9 @@ class LLMEncoder:
             print(text, '\n\n')
             print(response)
             '''
-            feat = self.model(**model_inputs, output_hidden_states=True)
-        return feat.hidden_states[-1][0, -1, :].cpu()
+            outputs = self.model(**model_inputs, output_hidden_states=True)
+        hidden_states = outputs.hidden_states
+        last_four_layers = hidden_states[-4:]
+        summed_hidden_states = torch.sum(torch.stack(last_four_layers), dim=0)
+        sentence_representation = torch.mean(summed_hidden_states, dim=1)
+        return sentence_representation.squeeze()
