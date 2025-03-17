@@ -164,18 +164,16 @@ class LLMGenerator:
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
         self.model = transformers.AutoModelForCausalLM.from_pretrained(model_id, torch_dtype='auto', device_map='auto')
 
-    def generate(self, history):
+    def generate(self, history, candidates, candidate_size):
         messages = [
             {'role': 'system',
              'content': "You are simulating a user on an online book-selling platform. "
-                        "Your task is to predict the next book this user is likely to purchase based on their chronological purchasing history. "
-                        "The user's history is provided as a sequence of book attributes in the following format:\n"
-                        "book_1's attributes \\n book_2's attributes \\n ... \\n book_n's attributes\n"
-                        "Requirements:\n"
-                        "- Ensure the predicted book is a **real, existing book** based on your knowledge.\n"
-                        "- Maintain **logical consistency** with the user's past purchases.\n"
-                        "- Output only the predicted book's attributes in the same format as the provided history, without any explanations or additional text.\n"
-                        f"Here is the user's purchasing history:\n{history}\n"}]
+                        "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. "
+                        f"The user's purchase history in sequential order is as follows: \n{history}\n"
+                        f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n"
+                        f"Please directly output only the integer index of the most likely next purchase, within the range [0, {candidate_size-1}]. "
+                        "**Do not provide any explanations or additional text**. "
+                        "Ensure your selection maintains consistency with the user's purchasing patterns."}]
         text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -189,7 +187,6 @@ class LLMGenerator:
             ]
             response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         return response
-
 
 class LLMEncoder:
     def __init__(self, model_id):
