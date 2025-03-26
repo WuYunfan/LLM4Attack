@@ -13,6 +13,9 @@ from torch.utils.data import Dataset
 from dataset import get_negative_items
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import transformers
+import openai
+import time
+
 
 def set_seed(seed=0):
     random.seed(seed)
@@ -171,9 +174,8 @@ class LLMGenerator:
                         "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. "
                         f"The user's purchase history in sequential order is as follows: {history}\n"
                         f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n"
-                        f"Please directly output only the integer index of the most likely next purchase, within the range [0, {candidate_size-1}]. "
-                        "**Do not provide any explanations or additional text**. "
-                        "Ensure your selection maintains consistency with the user's purchasing patterns."}]
+                        f"You must directly output the integer index of the most likely next purchase, within the range [0, {candidate_size-1}]. "
+                        "**Do not provide any explanations**. **Predict even though none perfectly match.**"}]
         text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -187,6 +189,45 @@ class LLMGenerator:
             ]
             response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         return response
+
+
+class LLMGeneratorOnline:
+    def __init__(self):
+        openai.api_key = 'sk-2RAv9ldyglBTyhzG8b120a7627514b5a83E66d0732C3Fe08'
+        openai.base_url = "https://ai-yyds.com/v1/"
+        openai.proxies = {'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
+        openai.default_headers = {"x-foo": "true"}
+        openai.timeout = 5
+        openai.max_retries = 0
+        self.model_id = 'gpt-4o-mini'
+
+    def generate(self, history, candidates, candidate_size):
+        prompt = (
+            "You are simulating a user on an online book-selling platform. "
+            "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. "
+            f"The user's purchase history in sequential order is as follows: {history}\n"
+            f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n"
+            f"You must directly output the integer index of the most likely next purchase, within the range [0, {candidate_size - 1}]. "
+            "**Do not provide any explanations**. **Predict even though none perfectly match.**"
+        )
+        success = 0
+        attempt = 0
+        while not success:
+            try:
+                response = openai.chat.completions.create(
+                    model=self.model_id,
+                    messages=[
+                        {"role": "system", "content": prompt}
+                    ],
+
+                )
+                success = True
+            except Exception as e:
+                attempt += 1
+                print(f"发生错误: {e}. 正在重试... 尝试次数: {attempt}")
+                time.sleep(1)
+        return response.choices[0].message.content.strip()
+
 
 class LLMEncoder:
     def __init__(self, model_id):
