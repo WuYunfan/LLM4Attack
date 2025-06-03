@@ -15,7 +15,11 @@ os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import transformers
 import openai
 import time
+import asyncio
 
+api_key = 'sk-oCdPBwCesg9DCYNBA1E39e90BfCb4f1c91B191Ad68FcEf2a'
+base_url = 'https://gptgod.cloud/v1/'
+openai.proxies={'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
 
 def set_seed(seed=0):
     random.seed(seed)
@@ -162,104 +166,83 @@ def goal_oriented_loss(target_scores, top_scores, expected_hr):
     return bottom_loss.mean()
 
 
-class LLMGenerator:
-    def __init__(self, model_id):
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
-        self.model = transformers.AutoModelForCausalLM.from_pretrained(model_id, torch_dtype='auto', device_map='auto')
-
-    def generate(self, history, candidates, candidate_size):
-        messages = [
-            {'role': 'system',
-             'content': "You are simulating a user on an online book-selling platform. "
-                        "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. "
-                        f"The user's purchase history in sequential order is as follows: {history}\n"
-                        f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n"
-                        f"You must directly output the integer index of the most likely next purchase, within the range [0, {candidate_size-1}]. "
-                        "**Do not provide any explanations**. **Predict even though none perfectly match.**"}]
-        text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
-        with torch.no_grad():
-            generated_ids = self.model.generate(**model_inputs, max_length=np.inf, do_sample=False)
-            generated_ids = [
-                output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-            ]
-            response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        return response
-
-
 class LLMGeneratorOnline:
     def __init__(self):
-        openai.api_key = 'sk-2RAv9ldyglBTyhzG8b120a7627514b5a83E66d0732C3Fe08'
-        openai.base_url = "https://ai-yyds.com/v1/"
-        openai.proxies = {'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
-        openai.default_headers = {"x-foo": "true"}
-        openai.timeout = 5
-        openai.max_retries = 0
+        self.client = openai.AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            default_headers={"x-foo": "true"},
+            timeout=20,
+            max_retries=0)
         self.model_id = 'gpt-4o-mini'
 
-    def generate(self, history, candidates, candidate_size):
-        prompt = (
-            "You are simulating a user on an online book-selling platform. "
-            "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. "
-            f"The user's purchase history in sequential order is as follows: {history}\n"
-            f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n"
-            f"You must directly output the integer index of the most likely next purchase, within the range [0, {candidate_size - 1}]. "
-            "**Do not provide any explanations**. **Predict even though none perfectly match.**"
-        )
-        success = 0
+    async def fetch_completion(self, prompt, candidate_size):
+        attempt = 0
+        while True:
+            try:
+                response = await self.client.chat.completions.create(
+                    model=self.model_id,
+                    messages=[{"role": "system", "content": prompt}],
+                )
+                index = int(response.choices[0].message.content.strip())
+                if not (0 <= index < candidate_size):
+                    raise ValueError(f'index {index} out of range')
+                return index
+            except Exception as e:
+                attempt += 1
+                print(f"Error: {e}. Retrying... times: {attempt}")
+                await asyncio.sleep(1)
+
+    async def call_api(self, prompts, candidate_size):
+        tasks = [self.fetch_completion(prompt, candidate_size) for prompt in prompts]
+        indices = await asyncio.gather(*tasks)
+        return indices
+
+    def generate(self, batch_histories, batch_candidate_str, candidate_size):
+        prompts = []
+        for history, candidates in zip(batch_histories, batch_candidate_str):
+            prompt = "You are simulating a user on an online book-selling platform. " \
+                     "Your task is to select the next book this user is likely to purchase based on its chronological purchasing history. " \
+                     f"The user's purchase history in sequential order is as follows: {history}\n" \
+                     f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n" \
+                     f"You must directly output the integer index of the most likely next purchase, within the range [0, {candidate_size - 1}]. " \
+                     "**Do not provide any explanations**. **Predict even though none perfectly matches.**"
+            prompts.append(prompt)
+        indices = asyncio.run(self.call_api(prompts, candidate_size))
+        print(indices)
+        return indices
+
+
+class LLMEncoderOnline:
+    def __init__(self):
+        self.client = openai.OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            default_headers={"x-foo": "true"},
+            timeout=10,
+            max_retries=0)
+        self.model_id = 'text-embedding-3-small'
+
+    def encode(self, feats):
+        prompts = []
+        for feat in feats:
+            prompt = "As an intelligent book recommender system, your task is to generate a compelling, well-structured, and informative book recommendation summary. " \
+                     "You should not only present the key information provided but also supplement it with relevant insights based on your own knowledge. " \
+                     "Ensure that the summary is engaging, concise, and appeals to the target audience. " \
+                     f"Below is the book's key information: \n{feat}\n"
+            prompts.append(prompt)
+        success = False
         attempt = 0
         while not success:
             try:
-                response = openai.chat.completions.create(
+                response = self.client.embeddings.create(
                     model=self.model_id,
-                    messages=[
-                        {"role": "system", "content": prompt}
-                    ],
-
+                    input=prompts
                 )
                 success = True
             except Exception as e:
                 attempt += 1
-                print(f"发生错误: {e}. 正在重试... 尝试次数: {attempt}")
+                print(f"Error: {e}. Retrying... times: {attempt}")
                 time.sleep(1)
-        return response.choices[0].message.content.strip()
-
-
-class LLMEncoder:
-    def __init__(self, model_id):
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_id)
-        self.model = transformers.AutoModelForCausalLM.from_pretrained(model_id, torch_dtype='auto', device_map='auto')
-
-    def encode(self, feat):
-        messages = [
-            {'role': 'system',
-             'content': "As an intelligent book recommender system, your task is to generate a compelling, well-structured, and informative book recommendation summary. "
-                        "You should not only present the key information provided but also supplement it with relevant insights based on your own knowledge. "
-                        "Ensure that the summary is engaging, concise, and appeals to the target audience. "
-                        f"Below is the book's key information: \n{feat}\n"}]
-        text = self.tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
-        with torch.no_grad():
-            '''
-            generated_ids = self.model.generate(**model_inputs, max_length=np.inf, do_sample=False)
-            generated_ids = [
-                output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
-            ]
-            response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
-            print(text, '\n\n')
-            print(response)
-            '''
-            outputs = self.model(**model_inputs, output_hidden_states=True)
-        hidden_states = outputs.hidden_states
-        last_four_layers = hidden_states[-4:]
-        summed_hidden_states = torch.sum(torch.stack(last_four_layers), dim=0)
-        sentence_representation = torch.mean(summed_hidden_states, dim=1)
-        return sentence_representation.squeeze()
+        embeddings = [torch.tensor(d.embedding, dtype=torch.float32) for d in response.data]
+        return embeddings

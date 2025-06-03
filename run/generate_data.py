@@ -1,17 +1,19 @@
 import numpy as np
 import torch
-from utils import LLMGenerator, init_run, LLMGeneratorOnline
+from utils import init_run, LLMGeneratorOnline
 import os
 from dataset import output_inters
 import time
 
 def sample_pro(popularity, mask):
-    validate_popularity = np.maximum(popularity, 0.) * mask
+    validate_popularity = np.maximum(popularity, 0.01) * mask
     return validate_popularity / validate_popularity.sum()
 
-def generate_inter_data(path, n_users, n_inters, candidate_size_1, candidate_size_2, train_ratio=0.8):
+def generate_inter_data(path, n_users, n_inters,
+                        candidate_size_1=1000, candidate_size_2=10,
+                        train_ratio=0.8, batch_size=512):
     n_train_inters = int(n_inters * train_ratio)
-    feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float64, device='cuda')
+    feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device='cuda')
 
     feats = []
     popularity =[]
@@ -25,40 +27,51 @@ def generate_inter_data(path, n_users, n_inters, candidate_size_1, candidate_siz
             feat = f.readline().strip()
     n_items = len(popularity)
     popularity = np.array(popularity)
-    popularity = popularity / popularity.sum() * n_users * n_inters
 
-    # model_id = 'Qwen/Qwen2.5-7B-Instruct'
-    # llm_g = LLMGenerator(model_id)
     llm_g = LLMGeneratorOnline()
     generated_train_data = []
     generated_val_data = []
-    for user in range(n_users):
-        one_user = list()
-        mask = np.ones(n_items, dtype=float)
-        history = ''
-        history_tensor = torch.zeros_like(feats_tensor[0])
+    for batch_start in range(0, n_users, batch_size):
+        batch_end = min(batch_start + batch_size, n_users)
+        current_batch_size = batch_end - batch_start
 
-        while len(one_user) < n_inters:
-            if len(one_user) == 0:
-                item = np.random.choice(n_items, p=sample_pro(popularity, mask))
-            else:
-                candidates = np.random.choice(n_items, p=sample_pro(popularity, mask), size=candidate_size_1)
-                scores = torch.matmul(feats_tensor[candidates, :], history_tensor[:, None]).squeeze()
-                top_scores, top_indices = torch.topk(scores, k=candidate_size_2)
-                candidates = candidates[top_indices.cpu().numpy()]
-                candidates_str = '\n'.join([f'{i}: {feats[c]}' for i, c in enumerate(candidates)])
-                llm_outputs = llm_g.generate(history, candidates_str, candidate_size_2)
-                item = candidates[int(llm_outputs)]
+        batch_user_data = [list() for _ in range(current_batch_size)]
+        batch_masks = np.ones((current_batch_size, n_items), dtype=float)
+        batch_histories = ['' for _ in range(current_batch_size)]
+        batch_history_tensors = torch.zeros((current_batch_size, feats_tensor.shape[1]), device='cuda', dtype=torch.float)
 
-            one_user.append(item)
-            mask[item] = 0.
-            history = history + '\n' + feats[item]
-            history_tensor = history_tensor + feats_tensor[item, :]
-            popularity[item] -= 1
-        generated_train_data.append(one_user[:n_train_inters])
-        generated_val_data.append(one_user[n_train_inters:])
-        if user % 1 == 0:
-            print(f'Finish generating user {user}, time: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}.')
+        n_generated_inters = 0
+        while n_generated_inters < n_inters:
+            if n_generated_inters != 0:
+                batch_candidates = []
+                batch_candidates_str = []
+                for user_idx in range(current_batch_size):
+                    candidates = np.random.choice(n_items, p=sample_pro(popularity, batch_masks[user_idx]),
+                                                  size=candidate_size_1)
+                    scores = torch.matmul(feats_tensor[candidates, :],
+                                          batch_history_tensors[user_idx][:, None]).squeeze()
+                    _, top_indices = torch.topk(scores, k=candidate_size_2)
+                    candidates = candidates[top_indices.cpu().numpy()]
+                    batch_candidates.append(candidates)
+                    candidates_str = '\n'.join([f'{i}: {feats[c]}' for i, c in enumerate(candidates)])
+                    batch_candidates_str.append(candidates_str)
+                indices = llm_g.generate(batch_histories, batch_candidates_str, candidate_size_2)
+
+            for user_idx in range(current_batch_size):
+                if n_generated_inters == 0:
+                    item = np.random.choice(n_items, p=sample_pro(popularity, batch_masks[user_idx]))
+                else:
+                    item = batch_candidates[user_idx][indices[user_idx]]
+                batch_user_data[user_idx].append(item)
+                batch_masks[user_idx][item] = 0.
+                batch_histories[user_idx] = batch_histories[user_idx] + '\n' + feats[item]
+                batch_history_tensors[user_idx] = batch_history_tensors[user_idx] + feats_tensor[item, :]
+            n_generated_inters += 1
+
+        for user_data in batch_user_data:
+            generated_train_data.append(user_data[:n_train_inters])
+            generated_val_data.append(user_data[n_train_inters:])
+        print(f'Finish generating user {batch_end - 1}, time: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}.')
 
     generate_path = os.path.join(os.path.dirname(path), 'gen')
     if not os.path.exists(generate_path):
@@ -71,8 +84,7 @@ def main():
     log_path = __file__[:-3]
     init_run(log_path, 2023)
     n_users, n_inters = 1000, 18
-    candidate_size_1, candidate_size_2 = 1000, 10
-    generate_inter_data('data/Amazon/time', n_users, n_inters, candidate_size_1, candidate_size_2)
+    generate_inter_data('data/Amazon/time', n_users, n_inters)
 
 
 if __name__ == '__main__':
