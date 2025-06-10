@@ -10,10 +10,10 @@ def sample_pro(popularity, mask):
     return validate_popularity / validate_popularity.sum()
 
 def generate_inter_data(path, n_users, n_inters,
-                        candidate_size_1=1000, candidate_size_2=10,
-                        train_ratio=0.8, batch_size=512):
+                        candidate_size_1=5, candidate_size_2=5,
+                        train_ratio=0.8, batch_size=128, device='cpu'):
     n_train_inters = int(n_inters * train_ratio)
-    feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device='cuda')
+    feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device=device)
 
     feats = []
     popularity =[]
@@ -38,7 +38,7 @@ def generate_inter_data(path, n_users, n_inters,
         batch_user_data = [list() for _ in range(current_batch_size)]
         batch_masks = np.ones((current_batch_size, n_items), dtype=float)
         batch_histories = ['' for _ in range(current_batch_size)]
-        batch_history_tensors = torch.zeros((current_batch_size, feats_tensor.shape[1]), device='cuda', dtype=torch.float)
+        batch_history_tensors = torch.zeros((current_batch_size, feats_tensor.shape[1]), device=device, dtype=torch.float)
 
         n_generated_inters = 0
         while n_generated_inters < n_inters:
@@ -46,16 +46,17 @@ def generate_inter_data(path, n_users, n_inters,
                 batch_candidates = []
                 batch_candidates_str = []
                 for user_idx in range(current_batch_size):
-                    candidates = np.random.choice(n_items, p=sample_pro(popularity, batch_masks[user_idx]),
+                    candidates1 = np.random.choice(n_items, p=sample_pro(popularity, batch_masks[user_idx]),
                                                   size=candidate_size_1)
-                    scores = torch.matmul(feats_tensor[candidates, :],
-                                          batch_history_tensors[user_idx][:, None]).squeeze()
+                    scores = torch.matmul(feats_tensor, batch_history_tensors[user_idx][:, None]).squeeze()
                     _, top_indices = torch.topk(scores, k=candidate_size_2)
-                    candidates = candidates[top_indices.cpu().numpy()]
+                    candidates2 = top_indices.cpu().numpy()
+                    candidates = np.concatenate((candidates1, candidates2), axis=0)
                     batch_candidates.append(candidates)
                     candidates_str = '\n'.join([f'{i}: {feats[c]}' for i, c in enumerate(candidates)])
                     batch_candidates_str.append(candidates_str)
-                indices = llm_g.generate(batch_histories, batch_candidates_str, candidate_size_2)
+                # print(batch_histories, '--------\n', batch_candidates_str)
+                indices = llm_g.generate(batch_histories, batch_candidates_str, candidate_size_1 + candidate_size_2)
 
             for user_idx in range(current_batch_size):
                 if n_generated_inters == 0:

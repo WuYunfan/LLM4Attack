@@ -12,14 +12,13 @@ from functools import partial
 from torch.utils.data import Dataset
 from dataset import get_negative_items
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-import transformers
 import openai
 import time
 import asyncio
 
 api_key = 'sk-oCdPBwCesg9DCYNBA1E39e90BfCb4f1c91B191Ad68FcEf2a'
 base_url = 'https://gptgod.cloud/v1/'
-openai.proxies={'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
+# openai.proxies={'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
 
 def set_seed(seed=0):
     random.seed(seed)
@@ -194,7 +193,10 @@ class LLMGeneratorOnline:
                 await asyncio.sleep(1)
 
     async def call_api(self, prompts, candidate_size):
-        tasks = [self.fetch_completion(prompt, candidate_size) for prompt in prompts]
+        tasks = []
+        for prompt in prompts:
+            tasks.append(self.fetch_completion(prompt, candidate_size))
+            await asyncio.sleep(0.05)
         indices = await asyncio.gather(*tasks)
         return indices
 
@@ -206,7 +208,9 @@ class LLMGeneratorOnline:
                      f"The user's purchase history in sequential order is as follows: {history}\n" \
                      f"Below are candidate books the user might purchase next, with their corresponding indexes: \n{candidates}\n" \
                      f"You must directly output the integer index of the most likely next purchase, within the range [0, {candidate_size - 1}]. " \
-                     "**Do not provide any explanations**. **Predict even though none perfectly matches.**"
+                     "**Do not provide any explanations**. " \
+                     "**Predict even though none perfectly matches.** " \
+                     "**Consider the possibility of user interest drift, for example, the user may not always read books from the same author or of the same genre.**"
             prompts.append(prompt)
         indices = asyncio.run(self.call_api(prompts, candidate_size))
         print(indices)
