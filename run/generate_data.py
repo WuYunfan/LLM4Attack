@@ -10,8 +10,8 @@ def sample_pro(popularity, mask):
     return validate_popularity / validate_popularity.sum()
 
 def generate_inter_data(path, n_users, n_inters,
-                        candidate1_size=5, candidate2_size_2=0,
-                        train_ratio=0.8, batch_size=128, device='cpu'):
+                        candidate1_size=10, candidate2_size_2=0,
+                        train_ratio=0.8, batch_size=256, device='cpu'):
     n_train_inters = int(n_inters * train_ratio)
     feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device=device)
 
@@ -78,14 +78,14 @@ def generate_inter_data(path, n_users, n_inters,
     generate_path = os.path.join(os.path.dirname(path), 'gen')
     if not os.path.exists(generate_path):
         os.mkdir(generate_path)
-    output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data)
-    output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data)
+    output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=1000)
+    output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=1000)
 
 
 def main():
     log_path = __file__[:-3]
     init_run(log_path, 2023)
-    n_users, n_inters = 1000, 18
+    n_users, n_inters = 4000, 18
     generate_inter_data('data/Amazon/time', n_users, n_inters)
 
 

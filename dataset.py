@@ -39,10 +39,10 @@ def update_user_inter_lists(u, i, t, user_map, item_map, user_inter_lists):
             user_inter_lists[user_map[u]].append([item_map[i], t])
 
 
-def output_inters(file_path, data):
+def output_inters(file_path, data, start=0):
     with open(file_path, 'w') as f:
         for user in range(len(data)):
-            u_items = [str(user)] + [str(item) for item in data[user]]
+            u_items = [str(start + user)] + [str(item) for item in data[user]]
             f.write(' '.join(u_items) + '\n')
 
 
