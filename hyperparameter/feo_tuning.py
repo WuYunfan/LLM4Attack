@@ -14,20 +14,21 @@ import os
 
 
 def objective(trial):
-    adv_weight = trial.suggest_categorical('adv_weight', [1.e-4, 1.e-3, 1.e-2])
-    diverse_weight = trial.suggest_categorical('diverse_weight', [1.e-4, 1.e-3, 1.e-2])
-    l2_weight = trial.suggest_categorical('l2_weight', [1.e-4, 1.e-3, 1.e-2])
+    adv_weight = trial.suggest_categorical('adv_weight', [1., 0.3, 0.1, 0.03])
+    kl_weight = trial.suggest_categorical('kl_weight', [1.e-2, 1.e-3, 1.e-4])
+    l2_weight = trial.suggest_categorical('l2_weight', [3.e-2, 1.e-2])
+
     set_seed(2023)
     device = torch.device('cuda')
     dataset_config, model_config, trainer_config = get_config(device)[0]
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.001,
+    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': l2_weight,
                                 'n_epochs': 0, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'FEOAttacker', 'n_fakes': 217, 'topk': 50, 'n_inters': 18,
                        'step_user': 10, 'n_training_epochs': 10, 'expected_hr': 0.05,
-                       'adv_weight': adv_weight, 'diverse_weight': diverse_weight, 'l2_weight': l2_weight,
-                       'look_ahead_lr': 0.1, 'prob': 0.95,
+                       'adv_weight': adv_weight, 'kl_weight': kl_weight,
+                       'look_ahead_lr': 0.1, 'filler_limit': 1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
 
