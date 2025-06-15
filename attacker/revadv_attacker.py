@@ -11,6 +11,42 @@ from model import get_model
 from trainer import get_trainer
 
 
+def retrain_surrogate(self):
+    self.surrogate_model.initial_embeddings()
+    self.surrogate_trainer.initialize_optimizer()
+    self.surrogate_trainer.best_ndcg = -np.inf
+    self.surrogate_trainer.merge_fake_tensor(self.fake_tensor.detach())
+    self.surrogate_trainer.train(verbose=False, save=False)
+
+    self.surrogate_trainer.merge_fake_tensor(self.fake_tensor)
+    with higher.innerloop_ctx(self.surrogate_model, self.surrogate_trainer.opt) as (fmodel, diffopt):
+        fmodel.train()
+        for _ in range(self.unroll_steps):
+            for users in self.surrogate_trainer.train_user_loader:
+                users = users[0]
+                if self.save_memory_mode:
+                    users = torch.arange(self.n_users, self.n_users + self.n_fakes, dtype=torch.int64,
+                                         device=self.device)
+                scores, l2_norm_sq = fmodel.forward(users)
+                profiles = self.surrogate_trainer.merged_data_tensor[users, :]
+                rec_loss = self.surrogate_trainer.loss(profiles, scores, self.surrogate_trainer.weight)
+                loss = rec_loss + self.surrogate_trainer.l2_reg * l2_norm_sq.mean()
+                diffopt.step(loss)
+                if self.save_memory_mode:
+                    break
+
+        fmodel.eval()
+        scores = fmodel.predict(self.target_user_tensor)
+        _, topk_items = scores.topk(self.topk, dim=1)
+        hr = torch.eq(topk_items.unsqueeze(2), self.target_item_tensor.unsqueeze(0).unsqueeze(0))
+        hr = hr.float().sum(dim=1).mean()
+        if self.name == 'LegUPAttacker':
+            scores = scores * (scores > torch.min(scores[:, self.target_item_tensor], dim=1, keepdim=True).values)
+        adv_loss = ce_loss(scores, self.target_item_tensor)
+        adv_grads = torch.autograd.grad(adv_loss, self.fake_tensor)[0]
+    return adv_loss.item(), hr.item(), adv_grads
+
+
 class GradientAttacker(BasicAttacker):
     def __init__(self, attacker_config):
         super(GradientAttacker, self).__init__(attacker_config)
@@ -28,7 +64,16 @@ class GradientAttacker(BasicAttacker):
         self.fake_tensor = self.init_fake_tensor(self.surrogate_trainer.data_tensor)
         self.adv_opt = SGD([self.fake_tensor], lr=self.lr, momentum=self.momentum)
 
-        self.target_user_tensor = torch.arange(self.n_users, dtype=torch.int64, device=self.device)
+        if attacker_config.get('uplift_ratio', None) is not None:
+            data_tensor = self.surrogate_trainer.data_tensor
+            y = torch.zeros([self.n_users], device=self.device, dtype=torch.float)
+            for item in self.target_items:
+                i_users = torch.nonzero(data_tensor[:, item])[:, 0]
+                for user in range(self.n_users):
+                    y[user] = y[user] + (data_tensor[user, :][None, :] *  data_tensor[i_users, :]).sum()
+            self.target_user_tensor = torch.argsort(y, descending=True)[:int(self.n_users * attacker_config['uplift_ratio'])]
+        else:
+            self.target_user_tensor = torch.arange(self.n_users, dtype=torch.int64, device=self.device)
         self.target_item_tensor = torch.tensor(self.target_items, dtype=torch.int64, device=self.device)
 
     def init_fake_tensor(self, data_tensor):
@@ -80,34 +125,7 @@ class RevAdvAttacker(GradientAttacker):
     def __init__(self, attacker_config):
         super(RevAdvAttacker, self).__init__(attacker_config)
         self.unroll_steps = attacker_config['unroll_steps']
+        self.save_memory_mode = attacker_config['save_memory_mode']
 
     def retrain_surrogate(self):
-        self.surrogate_model.initial_embeddings()
-        self.surrogate_trainer.initialize_optimizer()
-        self.surrogate_trainer.best_ndcg = -np.inf
-        self.surrogate_trainer.save_path = None
-        self.surrogate_trainer.merge_fake_tensor(self.fake_tensor)
-
-        self.surrogate_trainer.train(verbose=False, save=False)
-        with higher.innerloop_ctx(self.surrogate_model, self.surrogate_trainer.opt) as (fmodel, diffopt):
-            fmodel.train()
-            for _ in range(self.unroll_steps):
-                for users in self.surrogate_trainer.train_user_loader:
-                    users = users[0]
-                    scores, l2_norm_sq = fmodel.forward(users)
-                    profiles = self.surrogate_trainer.merged_data_tensor[users, :]
-                    rec_loss = self.surrogate_trainer.loss(profiles, scores, self.surrogate_trainer.weight)
-                    loss = rec_loss + self.surrogate_trainer.l2_reg * l2_norm_sq.mean()
-                    diffopt.step(loss)
-
-            fmodel.eval()
-            scores = fmodel.predict(self.target_user_tensor)
-            _, topk_items = scores.topk(self.topk, dim=1)
-            hr = torch.eq(topk_items.unsqueeze(2), self.target_item_tensor.unsqueeze(0).unsqueeze(0))
-            hr = hr.float().sum(dim=1).mean()
-            adv_loss = ce_loss(scores, self.target_item_tensor)
-            adv_grads = torch.autograd.grad(adv_loss, self.fake_tensor)[0]
-        gc.collect()
-        torch.cuda.empty_cache()
-        return adv_loss.item(), hr.item(), adv_grads
-
+        return retrain_surrogate(self)
