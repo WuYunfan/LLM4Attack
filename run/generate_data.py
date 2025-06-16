@@ -78,14 +78,14 @@ def generate_inter_data(path, n_users, n_inters,
     generate_path = os.path.join(os.path.dirname(path), 'gen')
     if not os.path.exists(generate_path):
         os.mkdir(generate_path)
-    output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=1000)
-    output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=1000)
+    output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=5000)
+    output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=5000)
 
 
 def main():
     log_path = __file__[:-3]
     init_run(log_path, 2023)
-    n_users, n_inters = 4000, 18
+    n_users, n_inters = 15000, 18
     generate_inter_data('data/Amazon/time', n_users, n_inters)
 
 
