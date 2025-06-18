@@ -18,7 +18,7 @@ import asyncio
 
 api_key = 'sk-oCdPBwCesg9DCYNBA1E39e90BfCb4f1c91B191Ad68FcEf2a'
 base_url = 'https://gptgod.cloud/v1/'
-# openai.proxies={'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
+openai.proxies={'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
 
 def set_seed(seed=0):
     random.seed(seed)
@@ -203,7 +203,7 @@ class LLMGeneratorOnline:
             api_key=api_key,
             base_url=base_url,
             default_headers={"x-foo": "true"},
-            timeout=20,
+            timeout=40,
             max_retries=0)
         self.model_id = 'gpt-4o-mini'
 

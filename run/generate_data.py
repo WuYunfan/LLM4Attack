@@ -11,7 +11,11 @@ def sample_pro(popularity, mask):
 
 def generate_inter_data(path, n_users, n_inters,
                         candidate1_size=10, candidate2_size_2=0,
-                        train_ratio=0.8, batch_size=256, device='cpu'):
+                        train_ratio=0.8, batch_size=128, device='cpu'):
+    generate_path = os.path.join(os.path.dirname(path), 'gen')
+    if not os.path.exists(generate_path):
+        os.mkdir(generate_path)
+
     n_train_inters = int(n_inters * train_ratio)
     feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device=device)
 
@@ -29,8 +33,6 @@ def generate_inter_data(path, n_users, n_inters,
     popularity = np.array(popularity)
 
     llm_g = LLMGeneratorOnline()
-    generated_train_data = []
-    generated_val_data = []
     for batch_start in range(0, n_users, batch_size):
         batch_end = min(batch_start + batch_size, n_users)
         current_batch_size = batch_end - batch_start
@@ -70,22 +72,21 @@ def generate_inter_data(path, n_users, n_inters,
                 batch_history_tensors[user_idx] = batch_history_tensors[user_idx] + feats_tensor[item, :]
             n_generated_inters += 1
 
+        generated_train_data = []
+        generated_val_data = []
         for user_data in batch_user_data:
             generated_train_data.append(user_data[:n_train_inters])
             generated_val_data.append(user_data[n_train_inters:])
         print(f'Finish generating user {batch_end - 1}, time: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}.')
 
-    generate_path = os.path.join(os.path.dirname(path), 'gen')
-    if not os.path.exists(generate_path):
-        os.mkdir(generate_path)
-    output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=5000)
-    output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=5000)
+        output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=11784 + batch_start, mode='a')
+        output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=11784 + batch_start, mode='a')
 
 
 def main():
     log_path = __file__[:-3]
     init_run(log_path, 2023)
-    n_users, n_inters = 15000, 18
+    n_users, n_inters = 8216, 18
     generate_inter_data('data/Amazon/time', n_users, n_inters)
 
 
