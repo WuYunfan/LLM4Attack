@@ -243,7 +243,7 @@ class MINDDataset(BasicDataset):
             if os.path.isdir(os.path.join(root_path, d)) and 'MIND' in d
         ]
         feats = dict()
-
+        user_inter_sets, item_inter_sets = dict(), dict()
         for sub_dir in sub_dirs:
             folder_path = os.path.join(root_path, sub_dir)
             news_path = os.path.join(folder_path, 'news.tsv')
@@ -267,7 +267,6 @@ class MINDDataset(BasicDataset):
                     feats[news_id] = str(feat)[1:-1]
                     line = f.readline().strip()
 
-            user_inter_sets, item_inter_sets = dict(), dict()
             with open(behaviors_path, 'r') as f:
                 line = f.readline().strip()
                 while line:
