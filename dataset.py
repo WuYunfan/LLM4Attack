@@ -7,6 +7,7 @@ import time
 import json
 import torch
 import re
+from datetime import datetime
 
 
 def get_dataset(config):
@@ -137,6 +138,7 @@ class BasicDataset(Dataset):
         for item, feat in feats.items():
             if item in item_map:
                 self.feats[item_map[item]] = self.feats[item_map[item]] + feat
+        assert all(not s.endswith(' ') for s in self.feats), "all items must have features"
 
     def __len__(self):
         return len(self.train_array)
@@ -229,3 +231,72 @@ class AmazonDataset(BasicDataset):
                 line = f.readline().strip()
         popularity = self.generate_inters(user_inter_lists)
         self.generate_feats(feats, item_map, popularity)
+
+
+class MINDDataset(BasicDataset):
+    def __init__(self, dataset_config):
+        super(MINDDataset, self).__init__(dataset_config)
+
+        root_path = dataset_config['path']
+        sub_dirs = [
+            d for d in os.listdir(root_path)
+            if os.path.isdir(os.path.join(root_path, d)) and 'MIND' in d
+        ]
+        feats = dict()
+
+        for sub_dir in sub_dirs:
+            folder_path = os.path.join(root_path, sub_dir)
+            news_path = os.path.join(folder_path, 'news.tsv')
+            behaviors_path = os.path.join(folder_path, 'behaviors.tsv')
+
+            with open(news_path, 'r') as f:
+                line = f.readline().strip()
+                while line:
+                    splits = line.split('\t')
+                    news_id = splits[0]
+                    category = splits[1]
+                    subcategory = splits[2]
+                    title = splits[3]
+                    abstract = splits[4]
+                    feat = {
+                        'title': title,
+                        'category': category,
+                        'subcategory': subcategory,
+                        'abstract': abstract
+                    }
+                    feats[news_id] = str(feat)[1:-1]
+                    line = f.readline().strip()
+
+            user_inter_sets, item_inter_sets = dict(), dict()
+            with open(behaviors_path, 'r') as f:
+                line = f.readline().strip()
+                while line:
+                    imp_id, user_id, time, history, impressions = line.split('\t')
+                    click_items = [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                    for item in click_items:
+                        update_ui_sets(user_id, item, user_inter_sets, item_inter_sets)
+                    line = f.readline().strip()
+
+        user_map, item_map = self.remove_sparse_ui(user_inter_sets, item_inter_sets)
+        user_inter_lists = [[] for _ in range(self.n_users)]
+
+        for sub_dir in sub_dirs:
+            folder_path = os.path.join(root_path, sub_dir)
+            behaviors_path = os.path.join(folder_path, 'behaviors.tsv')
+            with open(behaviors_path, 'r') as f:
+                line = f.readline().strip()
+                while line:
+                    imp_id, user_id, time, history, impressions = line.split('\t')
+                    ts = self.time_to_timestamp(time)
+                    click_items = [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                    for item in click_items:
+                        update_user_inter_lists(user_id, item, ts, user_map, item_map, user_inter_lists)
+                    line = f.readline().strip()
+
+        popularity = self.generate_inters(user_inter_lists)
+        self.generate_feats(feats, item_map, popularity)
+
+    def time_to_timestamp(self, tstr):
+        # tstr: "11/15/2019 10:22:32 AM" -> timestamp
+        dt = datetime.strptime(tstr, "%m/%d/%Y %I:%M:%S %p")
+        return int(dt.timestamp())
