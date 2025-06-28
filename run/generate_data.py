@@ -10,7 +10,7 @@ def sample_pro(popularity, mask):
     return validate_popularity / validate_popularity.sum()
 
 def generate_inter_data(path, n_users, n_inters,
-                        candidate1_size=10, candidate2_size_2=0,
+                        candidate1_size=10, candidate2_size=0,
                         train_ratio=0.8, batch_size=128, device='cpu'):
     generate_path = os.path.join(os.path.dirname(path), 'gen')
     if not os.path.exists(generate_path):
@@ -59,7 +59,7 @@ def generate_inter_data(path, n_users, n_inters,
                     candidates_str = '\n'.join([f'{i}: {feats[c]}' for i, c in enumerate(candidates)])
                     batch_candidates_str.append(candidates_str)
                 # print(batch_histories, '--------\n', batch_candidates_str)
-                indices = llm_g.generate(batch_histories, batch_candidates_str, candidate1_size + candidate2_size_2)
+                indices = llm_g.generate(batch_histories, batch_candidates_str, candidate1_size + candidate2_size)
 
             for user_idx in range(current_batch_size):
                 if n_generated_inters == 0:

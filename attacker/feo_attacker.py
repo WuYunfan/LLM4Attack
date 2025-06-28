@@ -34,9 +34,6 @@ class FEOAttacker(BasicAttacker):
         target_users = TensorDataset(torch.arange(self.n_users, dtype=torch.int64, device=self.device))
         self.target_user_loader = DataLoader(target_users, batch_size=self.surrogate_trainer_config['test_batch_size'],
                                              shuffle=True)
-        self.validate_topk = attacker_config.get('validate_topk', None)
-        if self.validate_topk is not None:
-            self.recommendation_lists = []
 
     def add_filler_items(self, surrogate_model, temp_fake_user_tensor):
         counts = torch.zeros([self.n_items], dtype=torch.int, device=self.device)
@@ -44,8 +41,6 @@ class FEOAttacker(BasicAttacker):
             scores = surrogate_model.predict(temp_fake_user_tensor)
         for u_idx, f_u in enumerate(temp_fake_user_tensor):
             item_score = scores[u_idx, :]
-            if self.validate_topk is not None:
-                self.recommendation_lists.append(set(item_score.topk(self.validate_topk).indices.cpu().numpy().tolist()))
             item_score[counts >= self.filler_limit] = 0.
             item_score[self.target_item_tensor] = 0.
             filler_items = item_score.topk(self.n_inters - self.target_items.shape[0]).indices

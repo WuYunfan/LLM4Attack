@@ -116,7 +116,6 @@ class BasicDataset(Dataset):
         self.val_data = []
         self.train_array = []
         average_inters = []
-        popularity = []
         for user in range(self.n_users):
             user_inter_lists[user].sort(key=lambda entry: entry[1])
             if self.shuffle:
@@ -127,11 +126,9 @@ class BasicDataset(Dataset):
             n_train_items = int(n_inter_items * self.train_ratio)
             self.train_data.append({i_t[0] for i_t in user_inter_lists[user][:n_train_items]})
             self.val_data.append({i_t[0] for i_t in user_inter_lists[user][n_train_items:]})
-            popularity.append(n_inter_items)
         average_inters = np.mean(average_inters)
         print('Users {:d}, Items {:d}, Average number of interactions {:.3f}, Total interactions {:.1f}'
               .format(self.n_users, self.n_items, average_inters, average_inters * self.n_users))
-        return popularity
 
     def generate_feats(self, feats, item_map, popularity):
         self.feats = [str(popularity[item]) + ' ' for item in range(self.n_items)]
@@ -218,7 +215,11 @@ class AmazonDataset(BasicDataset):
                 if record['rating'] > 3 and record['verified_purchase'] == True:
                     update_ui_sets(record['user_id'], record['parent_asin'], user_inter_sets, item_inter_sets)
                 line = f.readline().strip()
+
         user_map, item_map = self.remove_sparse_ui(user_inter_sets, item_inter_sets)
+        popularity = [None for _ in range(self.n_items)]
+        for item in list(item_inter_sets.keys()):
+            popularity[item_map[item]] = len(item_inter_sets[item])
 
         user_inter_lists = [[] for _ in range(self.n_users)]
         with open(input_file_path, 'r') as f:
@@ -229,70 +230,66 @@ class AmazonDataset(BasicDataset):
                     update_user_inter_lists(record['user_id'], record['parent_asin'], record['timestamp'],
                                             user_map, item_map, user_inter_lists)
                 line = f.readline().strip()
-        popularity = self.generate_inters(user_inter_lists)
+        self.generate_inters(user_inter_lists)
         self.generate_feats(feats, item_map, popularity)
 
 
 class MINDDataset(BasicDataset):
-    def __init__(self, dataset_config):
+    def __init__(self, dataset_config, user_sample_ratio=0.5):
         super(MINDDataset, self).__init__(dataset_config)
 
-        root_path = dataset_config['path']
-        sub_dirs = [
-            d for d in os.listdir(root_path)
-            if os.path.isdir(os.path.join(root_path, d)) and 'MIND' in d
-        ]
         feats = dict()
         user_inter_sets, item_inter_sets = dict(), dict()
-        for sub_dir in sub_dirs:
-            folder_path = os.path.join(root_path, sub_dir)
-            news_path = os.path.join(folder_path, 'news.tsv')
-            behaviors_path = os.path.join(folder_path, 'behaviors.tsv')
+        news_path = os.path.join(dataset_config['path'], 'news.tsv')
+        behaviors_path = os.path.join(dataset_config['path'], 'behaviors.tsv')
 
-            with open(news_path, 'r') as f:
+        with open(news_path, 'r') as f:
+            line = f.readline().strip()
+            while line:
+                splits = line.split('\t')
+                news_id = splits[0]
+                category = splits[1]
+                subcategory = splits[2]
+                title = splits[3]
+                abstract = splits[4]
+                feat = {
+                    'title': title,
+                    'category': category,
+                    'subcategory': subcategory,
+                    'abstract': abstract
+                }
+                feats[news_id] = str(feat)[1:-1]
                 line = f.readline().strip()
-                while line:
-                    splits = line.split('\t')
-                    news_id = splits[0]
-                    category = splits[1]
-                    subcategory = splits[2]
-                    title = splits[3]
-                    abstract = splits[4]
-                    feat = {
-                        'title': title,
-                        'category': category,
-                        'subcategory': subcategory,
-                        'abstract': abstract
-                    }
-                    feats[news_id] = str(feat)[1:-1]
-                    line = f.readline().strip()
 
-            with open(behaviors_path, 'r') as f:
+        with open(behaviors_path, 'r') as f:
+            line = f.readline().strip()
+            while line:
+                imp_id, user_id, time, history, impressions = line.split('\t')
+                click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                for item in click_items:
+                    update_ui_sets(user_id, item, user_inter_sets, item_inter_sets)
                 line = f.readline().strip()
-                while line:
-                    imp_id, user_id, time, history, impressions = line.split('\t')
-                    click_items = [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
-                    for item in click_items:
-                        update_ui_sets(user_id, item, user_inter_sets, item_inter_sets)
-                    line = f.readline().strip()
 
+        for user in list(user_inter_sets.keys()):
+            if random.random() < user_sample_ratio:
+                del user_inter_sets[user]
         user_map, item_map = self.remove_sparse_ui(user_inter_sets, item_inter_sets)
+        popularity = [None for _ in range(self.n_items)]
+        for item in list(item_inter_sets.keys()):
+            popularity[item_map[item]] = len(item_inter_sets[item])
+
         user_inter_lists = [[] for _ in range(self.n_users)]
-
-        for sub_dir in sub_dirs:
-            folder_path = os.path.join(root_path, sub_dir)
-            behaviors_path = os.path.join(folder_path, 'behaviors.tsv')
-            with open(behaviors_path, 'r') as f:
+        with open(behaviors_path, 'r') as f:
+            line = f.readline().strip()
+            while line:
+                imp_id, user_id, time, history, impressions = line.split('\t')
+                ts = self.time_to_timestamp(time)
+                click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                for item in click_items:
+                    update_user_inter_lists(user_id, item, ts, user_map, item_map, user_inter_lists)
                 line = f.readline().strip()
-                while line:
-                    imp_id, user_id, time, history, impressions = line.split('\t')
-                    ts = self.time_to_timestamp(time)
-                    click_items = [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
-                    for item in click_items:
-                        update_user_inter_lists(user_id, item, ts, user_map, item_map, user_inter_lists)
-                    line = f.readline().strip()
 
-        popularity = self.generate_inters(user_inter_lists)
+        self.generate_inters(user_inter_lists)
         self.generate_feats(feats, item_map, popularity)
 
     def time_to_timestamp(self, tstr):

@@ -248,10 +248,10 @@ class LLMGeneratorOnline:
                 "You are simulating a user on an online news platform. " \
                 "Your task is to select the next news article this user is likely to click on based on its chronological reading history. " \
                 f"The user's reading history in sequential order is as follows: {history}\n" \
-                f"Below are candidate news articles the user might click next, with their corresponding indexes: \n{candidates}\n" \ 
+                f"Below are candidate news articles the user might click next, with their corresponding indexes: \n{candidates}\n" \
                 f"You must directly output the integer index of the most likely next click, within the range [0, {candidate_size - 1}]. " \
                 "**Do not provide any explanations**. " \
-                "**Predict even though none perfectly matches.** " \ 
+                "**Predict even though none perfectly matches.** " \
                 "**Consider the possibility of user interest drift, for example, the user may not always read news about the same topic or from the same category.**"
             prompts.append(prompt)
         indices = asyncio.run(self.call_api(prompts, candidate_size))
