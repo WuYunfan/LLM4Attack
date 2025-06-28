@@ -8,13 +8,11 @@ import dgl
 import gc
 import random
 import types
-from functools import partial
-from torch.utils.data import Dataset
-from dataset import get_negative_items
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 import openai
 import time
 import asyncio
+import hashlib
 
 api_key = 'sk-oCdPBwCesg9DCYNBA1E39e90BfCb4f1c91B191Ad68FcEf2a'
 base_url = 'https://gptgod.cloud/v1/'
@@ -292,3 +290,9 @@ class LLMEncoderOnline:
                 time.sleep(1)
         embeddings = [torch.tensor(d.embedding, dtype=torch.float32) for d in response.data]
         return embeddings
+
+def str_prob(s, p):
+    md5 = hashlib.md5(s.encode('utf-8')).digest()
+    num = int.from_bytes(md5[:8], 'big')
+    norm = num / 2**64
+    return norm < p

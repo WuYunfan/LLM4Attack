@@ -8,6 +8,7 @@ import json
 import torch
 import re
 from datetime import datetime
+from utils import str_prob
 
 
 def get_dataset(config):
@@ -218,8 +219,8 @@ class AmazonDataset(BasicDataset):
 
         user_map, item_map = self.remove_sparse_ui(user_inter_sets, item_inter_sets)
         popularity = [None for _ in range(self.n_items)]
-        for item in list(item_inter_sets.keys()):
-            popularity[item_map[item]] = len(item_inter_sets[item])
+        for item, inters in list(item_inter_sets.items()):
+            popularity[item_map[item]] = len(inters)
 
         user_inter_lists = [[] for _ in range(self.n_users)]
         with open(input_file_path, 'r') as f:
@@ -235,7 +236,7 @@ class AmazonDataset(BasicDataset):
 
 
 class MINDDataset(BasicDataset):
-    def __init__(self, dataset_config, user_sample_ratio=0.5):
+    def __init__(self, dataset_config, user_sample_ratio=0.1):
         super(MINDDataset, self).__init__(dataset_config)
 
         feats = dict()
@@ -265,24 +266,27 @@ class MINDDataset(BasicDataset):
             line = f.readline().strip()
             while line:
                 imp_id, user_id, time, history, impressions = line.split('\t')
+                if not str_prob(user_id, user_sample_ratio):
+                    line = f.readline().strip()
+                    continue
                 click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
                 for item in click_items:
                     update_ui_sets(user_id, item, user_inter_sets, item_inter_sets)
                 line = f.readline().strip()
 
-        for user in list(user_inter_sets.keys()):
-            if random.random() < user_sample_ratio:
-                del user_inter_sets[user]
         user_map, item_map = self.remove_sparse_ui(user_inter_sets, item_inter_sets)
         popularity = [None for _ in range(self.n_items)]
-        for item in list(item_inter_sets.keys()):
-            popularity[item_map[item]] = len(item_inter_sets[item])
+        for item, inters in list(item_inter_sets.items()):
+            popularity[item_map[item]] = len(inters)
 
         user_inter_lists = [[] for _ in range(self.n_users)]
         with open(behaviors_path, 'r') as f:
             line = f.readline().strip()
             while line:
                 imp_id, user_id, time, history, impressions = line.split('\t')
+                if not str_prob(user_id, user_sample_ratio):
+                    line = f.readline().strip()
+                    continue
                 ts = self.time_to_timestamp(time)
                 click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
                 for item in click_items:
