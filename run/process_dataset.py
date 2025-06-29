@@ -11,6 +11,7 @@ def process_dataset(name):
 def main():
     process_dataset('MIND')
     # Amazon Users 21781, Items 10650, Average number of interactions 17.989, Total interactions 391828.0
+    # Mind Users 22172, Items 9660, Average number of interactions 30.302, Total interactions 671848.0
 
 if __name__ == '__main__':
     main()

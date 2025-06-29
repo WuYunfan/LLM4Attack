@@ -201,7 +201,7 @@ class LLMGeneratorOnline:
             api_key=api_key,
             base_url=base_url,
             default_headers={"x-foo": "true"},
-            timeout=40,
+            timeout=20,
             max_retries=0)
         self.model_id = 'gpt-4o-mini'
 
@@ -226,7 +226,7 @@ class LLMGeneratorOnline:
         tasks = []
         for prompt in prompts:
             tasks.append(self.fetch_completion(prompt, candidate_size))
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
         indices = await asyncio.gather(*tasks)
         return indices
 
@@ -242,6 +242,7 @@ class LLMGeneratorOnline:
                 "**Do not provide any explanations**. " \
                 "**Predict even though none perfectly matches.** " \
                 "**Consider the possibility of user interest drift, for example, the user may not always read books from the same author or of the same genre.**"
+
             prompt = \
                 "You are simulating a user on an online news platform. " \
                 "Your task is to select the next news article this user is likely to click on based on its chronological reading history. " \
@@ -251,6 +252,7 @@ class LLMGeneratorOnline:
                 "**Do not provide any explanations**. " \
                 "**Predict even though none perfectly matches.** " \
                 "**Consider the possibility of user interest drift, for example, the user may not always read news about the same topic or from the same category.**"
+
             prompts.append(prompt)
         indices = asyncio.run(self.call_api(prompts, candidate_size))
         print(indices)

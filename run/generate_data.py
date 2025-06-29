@@ -17,7 +17,7 @@ def generate_inter_data(path, n_users, n_inters,
         os.mkdir(generate_path)
 
     n_train_inters = int(n_inters * train_ratio)
-    feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device=device)
+    # feats_tensor = torch.load(os.path.join(path, 'feats.pt')).to(dtype=torch.float, device=device)
 
     feats = []
     popularity =[]
@@ -40,7 +40,7 @@ def generate_inter_data(path, n_users, n_inters,
         batch_user_data = [list() for _ in range(current_batch_size)]
         batch_masks = np.ones((current_batch_size, n_items), dtype=float)
         batch_histories = ['' for _ in range(current_batch_size)]
-        batch_history_tensors = torch.zeros((current_batch_size, feats_tensor.shape[1]), device=device, dtype=torch.float)
+        # batch_history_tensors = torch.zeros((current_batch_size, feats_tensor.shape[1]), device=device, dtype=torch.float)
 
         n_generated_inters = 0
         while n_generated_inters < n_inters:
@@ -69,7 +69,7 @@ def generate_inter_data(path, n_users, n_inters,
                 batch_user_data[user_idx].append(item)
                 batch_masks[user_idx][item] = 0.
                 batch_histories[user_idx] = batch_histories[user_idx] + '\n' + feats[item]
-                batch_history_tensors[user_idx] = batch_history_tensors[user_idx] + feats_tensor[item, :]
+                # batch_history_tensors[user_idx] = batch_history_tensors[user_idx] + feats_tensor[item, :]
             n_generated_inters += 1
 
         generated_train_data = []
@@ -79,15 +79,15 @@ def generate_inter_data(path, n_users, n_inters,
             generated_val_data.append(user_data[n_train_inters:])
         print(f'Finish generating user {batch_end - 1}, time: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}.')
 
-        output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=20000 + batch_start, mode='a')
-        output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=20000 + batch_start, mode='a')
+        output_inters(os.path.join(generate_path, 'train.txt'), generated_train_data, start=14079 + batch_start, mode='a')
+        output_inters(os.path.join(generate_path, 'val.txt'), generated_val_data, start=14079 + batch_start, mode='a')
 
 
 def main():
     log_path = __file__[:-3]
     init_run(log_path, 2023)
-    n_users, n_inters = 20000, 18
-    generate_inter_data('data/Amazon/time', n_users, n_inters)
+    n_users, n_inters = 8093, 30
+    generate_inter_data('data/MIND/time', n_users, n_inters)
 
 
 if __name__ == '__main__':

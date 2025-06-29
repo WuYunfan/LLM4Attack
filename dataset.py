@@ -236,7 +236,7 @@ class AmazonDataset(BasicDataset):
 
 
 class MINDDataset(BasicDataset):
-    def __init__(self, dataset_config, user_sample_ratio=0.1):
+    def __init__(self, dataset_config, user_sample_ratio=0.05):
         super(MINDDataset, self).__init__(dataset_config)
 
         feats = dict()
