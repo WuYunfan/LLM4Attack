@@ -190,8 +190,11 @@ class AmazonDataset(BasicDataset):
         super(AmazonDataset, self).__init__(dataset_config)
 
         feats = dict()
-        input_file_path = os.path.join(dataset_config['path'], 'meta_Books.jsonl')
-        with open(input_file_path, 'r') as f:
+        user_inter_sets, item_inter_sets = dict(), dict()
+        books_path = os.path.join(dataset_config['path'], 'meta_Books.jsonl')
+        rating_path = os.path.join(dataset_config['path'], 'Books.jsonl')
+
+        with open(books_path, 'r') as f:
             line = f.readline().strip()
             while line:
                 record = json.loads(line)
@@ -207,9 +210,7 @@ class AmazonDataset(BasicDataset):
                 feats[record['parent_asin']] = str(feat)[1:-1]
                 line = f.readline().strip()
 
-        input_file_path = os.path.join(dataset_config['path'], 'Books.jsonl')
-        user_inter_sets, item_inter_sets = dict(), dict()
-        with open(input_file_path, 'r') as f:
+        with open(rating_path, 'r') as f:
             line = f.readline().strip()
             while line:
                 record = json.loads(line)
@@ -223,7 +224,7 @@ class AmazonDataset(BasicDataset):
             popularity[item_map[item]] = len(inters)
 
         user_inter_lists = [[] for _ in range(self.n_users)]
-        with open(input_file_path, 'r') as f:
+        with open(rating_path, 'r') as f:
             line = f.readline().strip()
             while line:
                 record = json.loads(line)
@@ -299,4 +300,69 @@ class MINDDataset(BasicDataset):
     def time_to_timestamp(self, tstr):
         # tstr: "11/15/2019 10:22:32 AM" -> timestamp
         dt = datetime.strptime(tstr, "%m/%d/%Y %I:%M:%S %p")
+        return int(dt.timestamp())
+
+
+class YelpDataset(BasicDataset):
+    def __init__(self, dataset_config,  user_sample_ratio=0.5):
+        super(YelpDataset, self).__init__(dataset_config)
+
+        feats = dict()
+        user_inter_sets, item_inter_sets = dict(), dict()
+        business_path = os.path.join(dataset_config['path'], 'yelp_academic_dataset_business.json')
+        review_path = os.path.join(dataset_config['path'], 'yelp_academic_dataset_review.json')
+
+        with open(business_path, 'r') as f:
+            line = f.readline().strip()
+            while line:
+                business_data = json.loads(line.strip())
+                business_id = business_data['business_id']
+                feat = {
+                    'name': business_data.get('name', ''),
+                    'latitude': business_data.get('latitude', ''),
+                    'longitude': business_data.get('longitude', ''),
+                    'city': business_data.get('city', ''),
+                    'state': business_data.get('state', ''),
+                    'review_count': business_data.get('review_count', ''),
+                    'categories': business_data.get('categories', '')
+                }
+                feats[business_id] = str(feat)[1:-1]
+                line = f.readline().strip()
+
+        with open(review_path, 'r') as f:
+            line = f.readline().strip()
+            while line:
+                review_data = json.loads(line.strip())
+                user_id = review_data['user_id']
+                business_id = review_data['business_id']
+                stars = review_data['stars']
+                if stars > 3 and str_prob(user_id, user_sample_ratio):
+                    update_ui_sets(user_id, business_id, user_inter_sets, item_inter_sets)
+                line = f.readline().strip()
+
+        user_map, item_map = self.remove_sparse_ui(user_inter_sets, item_inter_sets)
+        popularity = [None for _ in range(self.n_items)]
+        for item, inters in list(item_inter_sets.items()):
+            popularity[item_map[item]] = len(inters)
+
+        user_inter_lists = [[] for _ in range(self.n_users)]
+        with open(review_path, 'r') as f:
+            line = f.readline().strip()
+            while line:
+                review_data = json.loads(line.strip())
+                user_id = review_data['user_id']
+                business_id = review_data['business_id']
+                stars = review_data['stars']
+                date_str = review_data['date']
+                if stars > 3 and str_prob(user_id, user_sample_ratio):
+                    ts = self.time_to_timestamp(date_str)
+                    update_user_inter_lists(user_id, business_id, ts, user_map, item_map, user_inter_lists)
+                line = f.readline().strip()
+
+        self.generate_inters(user_inter_lists)
+        self.generate_feats(feats, item_map, popularity)
+
+    def time_to_timestamp(self, tstr):
+        # tstr: "2015-01-03 23:21:18" -> timestamp
+        dt = datetime.strptime(tstr, "%Y-%m-%d %H:%M:%S")
         return int(dt.timestamp())
