@@ -253,7 +253,18 @@ class LLMGeneratorOnline:
                 "**Predict even though none perfectly matches.** " \
                 "**Consider the possibility of user interest drift, for example, the user may not always read news about the same topic or from the same category.**"
 
+            prompt = \
+                "You are simulating a user on a local business review platform. " \
+                "Your task is to select the next business this user is likely to visit or give a positive review to, based on its chronological interaction history. " \
+                f"The user's business interaction history in sequential order is as follows: {history}\n" \
+                f"Below are candidate businesses the user might visit or positively review next, with their corresponding indexes: \n{candidates}\n" \
+                f"You must directly output the integer index of the most likely next business interaction, within the range [0, {candidate_size - 1}]. " \
+                "**Do not provide any explanations**. " \
+                "**Predict even though none perfectly matches.** " \
+                "**Consider the possibility of user preference drift, for example, the user may explore different types of businesses, or expand its geographic range.**"
+
             prompts.append(prompt)
+
         indices = asyncio.run(self.call_api(prompts, candidate_size))
         print(indices)
         return indices
