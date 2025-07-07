@@ -219,6 +219,8 @@ class LLMGeneratorOnline:
                 return index
             except Exception as e:
                 attempt += 1
+                if attempt % 3 == 0:
+                    self.__init__()
                 print(f"Error: {e}. Retrying... times: {attempt}")
                 await asyncio.sleep(1)
 
