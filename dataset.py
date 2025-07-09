@@ -237,7 +237,7 @@ class AmazonDataset(BasicDataset):
 
 
 class MINDDataset(BasicDataset):
-    def __init__(self, dataset_config, user_sample_ratio=0.05):
+    def __init__(self, dataset_config, user_sample_ratio=0.3):
         super(MINDDataset, self).__init__(dataset_config)
 
         feats = dict()
@@ -270,7 +270,8 @@ class MINDDataset(BasicDataset):
                 if not str_prob(user_id, user_sample_ratio):
                     line = f.readline().strip()
                     continue
-                click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                # click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                click_items = [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
                 for item in click_items:
                     update_ui_sets(user_id, item, user_inter_sets, item_inter_sets)
                 line = f.readline().strip()
@@ -289,7 +290,8 @@ class MINDDataset(BasicDataset):
                     line = f.readline().strip()
                     continue
                 ts = self.time_to_timestamp(time)
-                click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                # click_items = history.strip().split() + [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
+                click_items = [x.split('-')[0] for x in impressions.strip().split() if x.endswith('-1')]
                 for item in click_items:
                     update_user_inter_lists(user_id, item, ts, user_map, item_map, user_inter_lists)
                 line = f.readline().strip()

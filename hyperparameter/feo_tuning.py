@@ -26,7 +26,7 @@ def objective(trial):
                                 'n_epochs': 0, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'FEOAttacker', 'n_fakes': 217, 'topk': 50, 'n_inters': 18,
-                       'step_user': 10, 'n_training_epochs': 10, 'expected_hr': 0.05,
+                       'step_user': 5, 'n_training_epochs': 10, 'expected_hr': 0.05,
                        'adv_weight': adv_weight, 'kl_weight': kl_weight,
                        'look_ahead_lr': 0.1, 'filler_limit': 1,
                        'surrogate_model_config': surrogate_model_config,
