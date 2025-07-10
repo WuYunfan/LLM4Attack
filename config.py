@@ -91,14 +91,14 @@ def get_mind_config(device):
 
     model_config = {'name': 'MF', 'embedding_size': 64}
     trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam',
-                      'lr': 0.01, 'l2_reg': 0.1,
+                      'lr': 0.01, 'l2_reg': 0.01,
                       'n_epochs': 1000, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                       'test_batch_size': 2048, 'topks': [50]}
     mind_config.append((dataset_config, model_config, trainer_config))
 
     model_config = {'name': 'MF', 'embedding_size': 64}
-    trainer_config = {'name': 'APRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.1,
-                      'eps': 1., 'adv_reg': 10., 'ckpt_path': 'checkpoints/pretrain_mf.pth',
+    trainer_config = {'name': 'APRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.01,
+                      'eps': 1., 'adv_reg': 0.01, 'ckpt_path': 'checkpoints/pretrain_mf.pth',
                       'n_epochs': 1000, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                       'test_batch_size': 2048, 'topks': [50]}
     mind_config.append((dataset_config, model_config, trainer_config))
@@ -106,13 +106,13 @@ def get_mind_config(device):
     dataset_config = {'name': 'ProcessedDataset', 'path': 'data/Amazon/time',
                       'device': device}
     model_config = {'name': 'LightGCN', 'embedding_size': 64, 'n_layers': 3}
-    trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 1.e-3, 'l2_reg': 1.e-4,
+    trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 1.e-3, 'l2_reg': 0.,
                       'n_epochs': 1000, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                       'test_batch_size': 2048, 'topks': [50]}
     mind_config.append((dataset_config, model_config, trainer_config))
 
     model_config = {'name': 'NeuMF', 'embedding_size': 64, 'layer_sizes': [64, 64, 64]}
-    trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': 1.e-2, 'l2_reg': 0.1,
+    trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': 1.e-3, 'l2_reg': 0.1,
                       'n_epochs': 1000, 'batch_size': 2 ** 12, 'dataloader_num_workers': 6,
                       'test_batch_size': 64, 'topks': [50], 'mf_pretrain_epochs': 100,
                       'mlp_pretrain_epochs': 100, 'max_patience': 100, 'neg_ratio': 4}
@@ -120,7 +120,7 @@ def get_mind_config(device):
 
     model_config = {'name': 'MultiVAE', 'layer_sizes': [64, 32],
                     'dropout': 0.4}
-    trainer_config = {'name': 'MLTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 1.e-3, 'kl_reg': 0.2,
+    trainer_config = {'name': 'MLTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 1.e-4, 'kl_reg': 0.2,
                       'n_epochs': 1000, 'batch_size': 2048,
                       'test_batch_size': 2048, 'topks': [50]}
     mind_config.append((dataset_config, model_config, trainer_config))
@@ -222,18 +222,18 @@ def get_yelp_attacker_config():
     yelp_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': None, 'l2_reg': None,
+    surrogate_trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': 1.e-2, 'l2_reg': 1.e-3,
                                 'n_epochs': 1, 'batch_size': 2 ** 12, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'neg_ratio': 4, 'verbose': False}
     attacker_config = {'name': 'DPA2DLAttacker', 'n_fakes': 218, 'topk': 50,
-                       'n_inters': 25, 'reg_u': None, 'prob': 0.9, 'kappa': 1.,
-                       'step': 1, 'alpha': None, 'n_rounds': 1,
+                       'n_inters': 25, 'reg_u': 0.01, 'prob': 0.9, 'kappa': 1.,
+                       'step': 1, 'alpha': 0.1, 'n_rounds': 1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
     yelp_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': None, 'l2_reg': None,
+    surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': 0.1, 'l2_reg': 0.001,
                                 'n_epochs': 48, 'batch_size': 2048, 'loss_function': 'mse_loss', 'weight': 20.,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'LegUPAttacker', 'n_fakes': 218, 'topk': 50, 'n_inters': 25,
