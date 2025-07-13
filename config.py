@@ -81,6 +81,18 @@ def get_amazon_attacker_config():
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
     amazon_attacker_config.append(attacker_config)
+
+    surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
+    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.03,
+                                'n_epochs': 0, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
+                                'test_batch_size': 2048, 'topks': [50], 'verbose': False}
+    attacker_config = {'name': 'FEOAttacker', 'n_fakes': 217, 'topk': 50, 'n_inters': 18,
+                       'step_user': 5, 'n_training_epochs': 10, 'expected_hr': 0.05,
+                       'adv_weight': 0.03, 'kl_weight': 0.001,
+                       'look_ahead_lr': 0.1, 'filler_limit': 1,
+                       'surrogate_model_config': surrogate_model_config,
+                       'surrogate_trainer_config': surrogate_trainer_config}
+    amazon_attacker_config.append(attacker_config)
     return amazon_attacker_config
 
 
@@ -129,22 +141,22 @@ def get_mind_config(device):
 def get_mind_attacker_config():
     mind_attacker_config = []
 
-    attacker_config = {'name': 'RandomAttacker', 'n_fakes': 0, 'n_inters': 30, 'topk': 50}
+    attacker_config = {'name': 'RandomAttacker', 'n_fakes': 0, 'n_inters': 17, 'topk': 50}
     mind_attacker_config.append(attacker_config)
 
-    attacker_config = {'name': 'RandomAttacker', 'n_fakes': 222, 'n_inters': 30, 'topk': 50}
+    attacker_config = {'name': 'RandomAttacker', 'n_fakes': 234, 'n_inters': 17, 'topk': 50}
     mind_attacker_config.append(attacker_config)
 
     attacker_config = {'name': 'BandwagonAttacker', 'top_rate': 0.1, 'popular_inter_rate': 0.5,
-                       'n_fakes': 222, 'n_inters': 30, 'topk': 50}
+                       'n_fakes': 234, 'n_inters': 17, 'topk': 50}
     mind_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
     surrogate_trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': None, 'l2_reg': None,
                                 'n_epochs': 1, 'batch_size': 2 ** 12, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'neg_ratio': 4, 'verbose': False}
-    attacker_config = {'name': 'DPA2DLAttacker', 'n_fakes': 222, 'topk': 50,
-                       'n_inters': 30, 'reg_u': None, 'prob': 0.9, 'kappa': 1.,
+    attacker_config = {'name': 'DPA2DLAttacker', 'n_fakes': 234, 'topk': 50,
+                       'n_inters': 17, 'reg_u': None, 'prob': 0.9, 'kappa': 1.,
                        'step': 1, 'alpha': None, 'n_rounds': 1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
@@ -152,17 +164,29 @@ def get_mind_attacker_config():
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
     surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': None, 'l2_reg': None,
-                                'n_epochs': 48, 'batch_size': 2048, 'loss_function': 'mse_loss', 'weight': 20.,
+                                'n_epochs': 49, 'batch_size': 2048, 'loss_function': 'mse_loss', 'weight': 20.,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
-    attacker_config = {'name': 'LegUPAttacker', 'n_fakes': 222, 'topk': 50, 'n_inters': 30,
+    attacker_config = {'name': 'LegUPAttacker', 'n_fakes': 234, 'topk': 50, 'n_inters': 17,
                        'n_epochs': 3, 'n_pretrain_g_epochs': 45, 'n_pretrain_d_epochs': 5,
                        'n_g_steps': 5, 'n_d_steps': 1, 'n_attack_steps': 50,
                        'g_layer_sizes': [512], 'd_layer_sizes': [512, 128, 1],
                        'lr_g': 0.01, 'lr_d': 0.01, 'reconstruct_weight': 20.,
-                       'unroll_steps': 2, 'save_memory_mode': False,
+                       'unroll_steps': 1, 'save_memory_mode': False,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
     mind_attacker_config.append(attacker_config)
+
+    surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
+    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': None,
+                                'n_epochs': 0, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
+                                'test_batch_size': 2048, 'topks': [50], 'verbose': False}
+    attacker_config = {'name': 'FEOAttacker', 'n_fakes': 234, 'topk': 50, 'n_inters': 17,
+                       'step_user': 5, 'n_training_epochs': 10, 'expected_hr': 0.05,
+                       'adv_weight': None, 'kl_weight': None,
+                       'look_ahead_lr': 0.1, 'filler_limit': 1,
+                       'surrogate_model_config': surrogate_model_config,
+                       'surrogate_trainer_config': surrogate_trainer_config}
+    yelp_attacker_config.append(attacker_config)
     return mind_attacker_config
 
 
@@ -233,15 +257,27 @@ def get_yelp_attacker_config():
     yelp_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': 0.1, 'l2_reg': 0.001,
-                                'n_epochs': 48, 'batch_size': 2048, 'loss_function': 'mse_loss', 'weight': 20.,
+    surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.01,
+                                'n_epochs': 49, 'batch_size': 2048, 'loss_function': 'mse_loss', 'weight': 20.,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'LegUPAttacker', 'n_fakes': 218, 'topk': 50, 'n_inters': 25,
                        'n_epochs': 3, 'n_pretrain_g_epochs': 45, 'n_pretrain_d_epochs': 5,
                        'n_g_steps': 5, 'n_d_steps': 1, 'n_attack_steps': 50,
                        'g_layer_sizes': [512], 'd_layer_sizes': [512, 128, 1],
                        'lr_g': 0.01, 'lr_d': 0.01, 'reconstruct_weight': 20.,
-                       'unroll_steps': 2, 'save_memory_mode': False,
+                       'unroll_steps': 1, 'save_memory_mode': False,
+                       'surrogate_model_config': surrogate_model_config,
+                       'surrogate_trainer_config': surrogate_trainer_config}
+    yelp_attacker_config.append(attacker_config)
+
+    surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
+    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.03,
+                                'n_epochs': 0, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
+                                'test_batch_size': 2048, 'topks': [50], 'verbose': False}
+    attacker_config = {'name': 'FEOAttacker', 'n_fakes': 218, 'topk': 50, 'n_inters': 25,
+                       'step_user': 5, 'n_training_epochs': 10, 'expected_hr': 0.05,
+                       'adv_weight': 0.03, 'kl_weight': 0.001,
+                       'look_ahead_lr': 0.1, 'filler_limit': 1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
     yelp_attacker_config.append(attacker_config)
