@@ -152,18 +152,18 @@ def get_mind_attacker_config():
     mind_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': None, 'l2_reg': None,
+    surrogate_trainer_config = {'name': 'BCETrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.01,
                                 'n_epochs': 1, 'batch_size': 2 ** 12, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'neg_ratio': 4, 'verbose': False}
     attacker_config = {'name': 'DPA2DLAttacker', 'n_fakes': 234, 'topk': 50,
-                       'n_inters': 17, 'reg_u': None, 'prob': 0.9, 'kappa': 1.,
-                       'step': 1, 'alpha': None, 'n_rounds': 1,
+                       'n_inters': 17, 'reg_u': 0.001, 'prob': 0.9, 'kappa': 1.,
+                       'step': 1, 'alpha': 0.1, 'n_rounds': 1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
     mind_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': None, 'l2_reg': None,
+    surrogate_trainer_config = {'name': 'UserBatchTrainer', 'optimizer': 'Adam', 'lr': 0.1, 'l2_reg': 0.0001,
                                 'n_epochs': 49, 'batch_size': 2048, 'loss_function': 'mse_loss', 'weight': 20.,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'LegUPAttacker', 'n_fakes': 234, 'topk': 50, 'n_inters': 17,
@@ -177,16 +177,16 @@ def get_mind_attacker_config():
     mind_attacker_config.append(attacker_config)
 
     surrogate_model_config = {'name': 'MF', 'embedding_size': 64, 'verbose': False}
-    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': None,
+    surrogate_trainer_config = {'name': 'BPRTrainer', 'optimizer': 'Adam', 'lr': 0.01, 'l2_reg': 0.01,
                                 'n_epochs': 0, 'batch_size': 2 ** 14, 'dataloader_num_workers': 6,
                                 'test_batch_size': 2048, 'topks': [50], 'verbose': False}
     attacker_config = {'name': 'FEOAttacker', 'n_fakes': 234, 'topk': 50, 'n_inters': 17,
                        'step_user': 5, 'n_training_epochs': 10, 'expected_hr': 0.05,
-                       'adv_weight': None, 'kl_weight': None,
+                       'adv_weight': 1., 'kl_weight': 0.001,
                        'look_ahead_lr': 0.1, 'filler_limit': 1,
                        'surrogate_model_config': surrogate_model_config,
                        'surrogate_trainer_config': surrogate_trainer_config}
-    yelp_attacker_config.append(attacker_config)
+    mind_attacker_config.append(attacker_config)
     return mind_attacker_config
 
 
