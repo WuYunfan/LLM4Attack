@@ -86,8 +86,8 @@ def generate_inter_data(path, n_users, n_inters,
 def main():
     log_path = __file__[:-3]
     init_run(log_path, 2023)
-    n_users, n_inters = 23415, 17
-    generate_inter_data('data/MIND/time', n_users, n_inters)
+    n_users, n_inters = 21781, 18
+    generate_inter_data('data/Amazon/time', n_users, n_inters)
 
 
 if __name__ == '__main__':

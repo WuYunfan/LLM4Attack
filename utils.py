@@ -17,6 +17,7 @@ import hashlib
 api_key = 'sk-oCdPBwCesg9DCYNBA1E39e90BfCb4f1c91B191Ad68FcEf2a'
 base_url = 'https://gptgod.cloud/v1/'
 openai.proxies={'http://': 'http://10.128.208.12:8888', 'https://':'http://10.128.208.12:8888'}
+model_id = 'gpt-5'
 
 def set_seed(seed=0):
     random.seed(seed)
@@ -203,7 +204,7 @@ class LLMGeneratorOnline:
             default_headers={"x-foo": "true"},
             timeout=20,
             max_retries=0)
-        self.model_id = 'gpt-4o-mini'
+        self.model_id = model_id
 
     async def fetch_completion(self, prompt, candidate_size):
         attempt = 0
@@ -244,7 +245,7 @@ class LLMGeneratorOnline:
                 "**Do not provide any explanations**. " \
                 "**Predict even though none perfectly matches.** " \
                 "**Consider the possibility of user interest drift, for example, the user may not always read books from the same author or of the same genre.**"
-
+            """
             prompt = \
                 "You are simulating a user on an online news platform. " \
                 "Your task is to select the next news article this user is likely to click on based on its chronological reading history. " \
@@ -264,7 +265,7 @@ class LLMGeneratorOnline:
                 "**Do not provide any explanations**. " \
                 "**Predict even though none perfectly matches.** " \
                 "**Consider the possibility of user preference drift, for example, the user may explore different types of businesses, or expand its geographic range.**"
-
+            """
             prompts.append(prompt)
 
         indices = asyncio.run(self.call_api(prompts, candidate_size))
