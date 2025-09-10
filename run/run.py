@@ -34,11 +34,13 @@ def main():
         set_seed(seed_list[i])
         real_dataset = get_dataset(dataset_config)
         target_items = get_target_items(real_dataset)
+        # target_items = target_items_lists[i]
         print('Target items of {:d}th run: {:s}'.format(i, str(target_items)))
         attacker_config['target_items'] = target_items
 
-        dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'gen')
-        generated_dataset = get_dataset(dataset_config)
+        generated_dataset_config =  dataset_config.copy()
+        generated_dataset_config['path'] = os.path.join(os.path.dirname(dataset_config['path']), 'gen')
+        generated_dataset = get_dataset(generated_dataset_config)
         attacker = get_attacker(attacker_config, generated_dataset)
         if os.path.exists(log_path + '-' + str(target_items)):
             shutil.rmtree(log_path + '-' + str(target_items))

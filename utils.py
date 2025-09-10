@@ -229,7 +229,7 @@ class LLMGeneratorOnline:
         tasks = []
         for prompt in prompts:
             tasks.append(self.fetch_completion(prompt, candidate_size))
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
         indices = await asyncio.gather(*tasks)
         return indices
 
